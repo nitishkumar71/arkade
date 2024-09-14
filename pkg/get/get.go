@@ -9,7 +9,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"regexp"
 	"strings"
 	"text/template"
 	"time"
@@ -17,10 +16,6 @@ import (
 	"github.com/alexellis/arkade/pkg"
 	"github.com/alexellis/arkade/pkg/env"
 )
-
-const GitHubVersionStrategy = "github"
-const k8sVersionStrategy = "k8s"
-const goVersionStrategy = "go"
 
 var supportedOS = [...]string{"linux", "darwin", "ming"}
 var supportedArchitectures = [...]string{"x86_64", "arm", "amd64", "armv6l", "armv7l", "arm64", "aarch64"}
@@ -69,6 +64,9 @@ type Tool struct {
 
 	// true if tool should be used as system install only
 	SystemOnly bool
+
+	// Provides custom mechanism to resolve version for different tools
+	VersionResolver VersionResolver
 }
 
 type ToolLocal struct {
@@ -154,32 +152,16 @@ func (tool Tool) GetURL(os, arch, version string, quiet bool) (string, error) {
 			log.Printf("Looking up version for %s", tool.Name)
 		}
 
-		if len(tool.URLTemplate) == 0 ||
-			strings.Contains(tool.URLTemplate, "https://github.com/") ||
-			tool.VersionStrategy == GitHubVersionStrategy {
-
-			v, err := FindGitHubRelease(tool.Owner, tool.Repo)
-			if err != nil {
-				return "", err
-			}
-			version = v
+		var resolver VersionResolver
+		resolver = tool.VersionResolver
+		if resolver == nil {
+			resolver = &GithubVersionResolver{tool.Owner, tool.Repo}
 		}
-
-		if tool.VersionStrategy == k8sVersionStrategy {
-			v, err := FindK8sRelease()
-			if err != nil {
-				return "", err
-			}
-			version = v
+		v, err := resolver.Version()
+		if err != nil {
+			return "", err
 		}
-
-		if tool.VersionStrategy == goVersionStrategy {
-			v, err := FindGoRelease()
-			if err != nil {
-				return "", err
-			}
-			version = v
-		}
+		version = v
 
 		if !quiet {
 			log.Printf("Found: %s", version)
@@ -223,112 +205,8 @@ func getURLByGithubTemplate(tool Tool, os, arch, version string) (string, error)
 }
 
 func FindGitHubRelease(owner, repo string) (string, error) {
-	url := fmt.Sprintf("https://github.com/%s/%s/releases/latest", owner, repo)
-	client := makeHTTPClient(&githubTimeout, false)
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
-
-	req, err := http.NewRequest(http.MethodHead, url, nil)
-	if err != nil {
-		return "", err
-	}
-
-	req.Header.Set("User-Agent", pkg.UserAgent())
-
-	res, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-
-	if res.Body != nil {
-		defer res.Body.Close()
-	}
-
-	if res.StatusCode != http.StatusMovedPermanently && res.StatusCode != http.StatusFound {
-		return "", fmt.Errorf("server returned status: %d", res.StatusCode)
-	}
-
-	loc := res.Header.Get("Location")
-	if len(loc) == 0 {
-		return "", fmt.Errorf("unable to determine release of tool")
-	}
-
-	version := loc[strings.LastIndex(loc, "/")+1:]
-	return version, nil
-}
-
-func FindK8sRelease() (string, error) {
-	url := "https://cdn.dl.k8s.io/release/stable.txt"
-
-	timeout := time.Second * 5
-	client := makeHTTPClient(&timeout, false)
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
-
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return "", err
-	}
-
-	req.Header.Set("User-Agent", pkg.UserAgent())
-
-	res, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-
-	if res.Body == nil {
-		return "", fmt.Errorf("unable to determine release of tool")
-	}
-
-	defer res.Body.Close()
-	bodyBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return "", err
-	}
-
-	version := string(bodyBytes)
-	return version, nil
-}
-
-func FindGoRelease() (string, error) {
-	req, err := http.NewRequest(http.MethodGet, "https://go.dev/VERSION?m=text", nil)
-	if err != nil {
-		return "", err
-	}
-
-	req.Header.Set("User-Agent", pkg.UserAgent())
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-
-	if res.Body == nil {
-		return "", fmt.Errorf("unexpected empty body")
-	}
-
-	defer res.Body.Close()
-	body, _ := io.ReadAll(res.Body)
-
-	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected status code: %d", res.StatusCode)
-	}
-
-	content := strings.TrimSpace(string(body))
-	exp, err := regexp.Compile(`^go(\d+.\d+.\d+)`)
-	if err != nil {
-		return "", err
-	}
-
-	version := exp.FindStringSubmatch(content)
-	if len(version) < 2 {
-		return "", fmt.Errorf("failed to fetch go latest version number")
-	}
-
-	return version[1], nil
+	resolver := &GithubVersionResolver{Owner: owner, Repo: repo}
+	return resolver.Version()
 }
 
 func getBinaryURL(owner, repo, version, downloadName string) string {

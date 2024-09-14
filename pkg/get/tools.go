@@ -62,11 +62,10 @@ func MakeTools() Tools {
 
 	tools = append(tools,
 		Tool{
-			Owner:           "helm",
-			Repo:            "helm",
-			Name:            "helm",
-			VersionStrategy: GitHubVersionStrategy,
-			Description:     "The Kubernetes Package Manager: Think of it like apt/yum/homebrew for Kubernetes.",
+			Owner:       "helm",
+			Repo:        "helm",
+			Name:        "helm",
+			Description: "The Kubernetes Package Manager: Think of it like apt/yum/homebrew for Kubernetes.",
 			URLTemplate: `
 						{{$os := .OS}}
 						{{$arch := .Arch}}
@@ -164,7 +163,7 @@ func MakeTools() Tools {
 			Owner:           "kubernetes",
 			Repo:            "kubernetes",
 			Name:            "kubectl",
-			VersionStrategy: k8sVersionStrategy,
+			VersionResolver: &K8VersionResolver{},
 			Description:     "Run commands against Kubernetes clusters",
 			URLTemplate: `{{$arch := "arm"}}
 
@@ -653,11 +652,10 @@ https://github.com/inlets/inletsctl/releases/download/{{.Version}}/{{$fileName}}
 
 	tools = append(tools,
 		Tool{
-			Owner:           "digitalocean",
-			Repo:            "doctl",
-			Name:            "doctl",
-			VersionStrategy: GitHubVersionStrategy,
-			Description:     "Official command line interface for the DigitalOcean API.",
+			Owner:       "digitalocean",
+			Repo:        "doctl",
+			Name:        "doctl",
+			Description: "Official command line interface for the DigitalOcean API.",
 			BinaryTemplate: `
 		{{$osStr := .OS}}
 		{{ if HasPrefix .OS "ming" -}}
@@ -830,11 +828,10 @@ https://github.com/inlets/inletsctl/releases/download/{{.Version}}/{{$fileName}}
 
 	tools = append(tools,
 		Tool{
-			Owner:           "hashicorp",
-			Repo:            "consul",
-			Name:            "consul",
-			VersionStrategy: GitHubVersionStrategy,
-			Description:     "A solution to connect and configure applications across dynamic, distributed infrastructure",
+			Owner:       "hashicorp",
+			Repo:        "consul",
+			Name:        "consul",
+			Description: "A solution to connect and configure applications across dynamic, distributed infrastructure",
 			URLTemplate: `
 				{{$arch := ""}}
 				{{- if eq .Arch "x86_64" -}}
@@ -855,11 +852,10 @@ https://github.com/inlets/inletsctl/releases/download/{{.Version}}/{{$fileName}}
 
 	tools = append(tools,
 		Tool{
-			Owner:           "hashicorp",
-			Repo:            "terraform",
-			Name:            "terraform",
-			VersionStrategy: GitHubVersionStrategy,
-			Description:     "Infrastructure as Code for major cloud providers.",
+			Owner:       "hashicorp",
+			Repo:        "terraform",
+			Name:        "terraform",
+			Description: "Infrastructure as Code for major cloud providers.",
 			URLTemplate: `
 			{{$arch := ""}}
 			{{- if eq .Arch "x86_64" -}}
@@ -993,11 +989,10 @@ https://github.com/inlets/inletsctl/releases/download/{{.Version}}/{{$fileName}}
 
 	tools = append(tools,
 		Tool{
-			Owner:           "hashicorp",
-			Repo:            "packer",
-			Name:            "packer",
-			VersionStrategy: GitHubVersionStrategy,
-			Description:     "Build identical machine images for multiple platforms from a single source configuration.",
+			Owner:       "hashicorp",
+			Repo:        "packer",
+			Name:        "packer",
+			Description: "Build identical machine images for multiple platforms from a single source configuration.",
 			URLTemplate: `
 			{{$arch := ""}}
 			{{- if eq .Arch "x86_64" -}}
@@ -1018,11 +1013,10 @@ https://github.com/inlets/inletsctl/releases/download/{{.Version}}/{{$fileName}}
 
 	tools = append(tools,
 		Tool{
-			Owner:           "hashicorp",
-			Repo:            "waypoint",
-			Name:            "waypoint",
-			VersionStrategy: GitHubVersionStrategy,
-			Description:     "Easy application deployment for Kubernetes and Amazon ECS",
+			Owner:       "hashicorp",
+			Repo:        "waypoint",
+			Name:        "waypoint",
+			Description: "Easy application deployment for Kubernetes and Amazon ECS",
 			URLTemplate: `
 			{{$arch := .Arch}}
 			{{- if eq .Arch "x86_64" -}}
@@ -2894,11 +2888,10 @@ https://github.com/{{.Owner}}/{{.Repo}}/releases/download/{{.Version}}/{{.Name}}
 
 	tools = append(tools,
 		Tool{
-			Owner:           "hashicorp",
-			Repo:            "vault",
-			Name:            "vault",
-			VersionStrategy: GitHubVersionStrategy,
-			Description:     "A tool for secrets management, encryption as a service, and privileged access management.",
+			Owner:       "hashicorp",
+			Repo:        "vault",
+			Name:        "vault",
+			Description: "A tool for secrets management, encryption as a service, and privileged access management.",
 			URLTemplate: `
 			{{$arch := ""}}
 			{{- if eq .Arch "x86_64" -}}
@@ -4201,7 +4194,7 @@ https://github.com/{{.Owner}}/{{.Repo}}/releases/download/{{.Version}}/{{.Name}}
 			Repo:            "go",
 			Name:            "go",
 			SystemOnly:      true,
-			VersionStrategy: goVersionStrategy,
+			VersionResolver: &GoVersionResolver{},
 			Description:     "Build simple, secure, scalable systems with Go",
 			URLTemplate: `
 							{{$os := .OS}}
@@ -4226,12 +4219,11 @@ https://github.com/{{.Owner}}/{{.Repo}}/releases/download/{{.Version}}/{{.Name}}
 
 	tools = append(tools,
 		Tool{
-			Owner:           "PowerShell",
-			Repo:            "PowerShell",
-			Name:            "pwsh",
-			VersionStrategy: GitHubVersionStrategy,
-			SystemOnly:      true,
-			Description:     "PowerShell is a cross-platform automation and configuration tool/framework",
+			Owner:       "PowerShell",
+			Repo:        "PowerShell",
+			Name:        "pwsh",
+			SystemOnly:  true,
+			Description: "PowerShell is a cross-platform automation and configuration tool/framework",
 			URLTemplate: `
 					{{$os := .OS}}
 					{{$arch := .Arch}}
